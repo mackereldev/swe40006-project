@@ -1,0 +1,15 @@
+{
+  "name": "swe40006-project",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.11.2",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.11.2",
+  "type": "module"
+}
