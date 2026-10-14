@@ -1,2 +1,4 @@
 allowBuilds:
-  dprint: true
+    dprint: true
+packages:
+    - frontend
