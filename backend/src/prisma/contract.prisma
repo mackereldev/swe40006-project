@@ -1,0 +1,7 @@
+// use prisma-8
+model Entry {
+  id        Int             @id @default(autoincrement())
+  author    String?
+  body      String?
+  createdAt TimestampString @default(now())
+}
