@@ -10,4 +10,5 @@
   "[jsonc]": { "editor.defaultFormatter": "dprint.dprint" },
   "[markdown]": { "editor.defaultFormatter": "dprint.dprint" },
   "[yaml]": { "editor.defaultFormatter": "dprint.dprint" },
+  "[prisma]": { "editor.defaultFormatter": "Prisma.prisma" },
 }

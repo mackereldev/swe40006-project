@@ -1,6 +1,7 @@
 allowBuilds:
     dprint: true
     esbuild: true
+    workerd: true
 packages:
     - backend
     - frontend
