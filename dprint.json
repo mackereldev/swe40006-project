@@ -8,7 +8,11 @@
   },
   "excludes": [
     "**/node_modules",
-    "**/*-lock.json"
+    "**/*-lock.json",
+    "**/*-lock.yaml",
+    "./backend/migrations/**",
+    "./backend/src/prisma/**/*.d.ts",
+    "./backend/src/prisma/**/*.json"
   ],
   "plugins": [
     "npm:@dprint/typescript@0.96.1",
