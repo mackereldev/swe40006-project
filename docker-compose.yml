@@ -9,9 +9,9 @@ services:
                 - swe40006-project-frontend
         container_name: swe40006-project-frontend
         environment:
-            VITE_API_URL: "localhost:${BACKEND_PORT}"
+            VITE_API_URL: "localhost:${BACKEND_PORT:-5000}"
         ports:
-            - "${FRONTEND_PORT}:4173"
+            - "${FRONTEND_PORT:-4173}:4173"
         develop:
             watch:
                 - action: sync
@@ -39,7 +39,7 @@ services:
         environment:
             DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@swe40006-project-db:5432/${POSTGRES_DB}"
         ports:
-            - "${BACKEND_PORT}:5000"
+            - "${BACKEND_PORT:-5000}:5000"
         depends_on:
             db:
                 condition: service_healthy
@@ -63,9 +63,9 @@ services:
         container_name: swe40006-project-db
         restart: always
         environment:
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_USER: ${POSTGRES_USER:?error}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?error}
+            POSTGRES_DB: ${POSTGRES_DB:?error}
         volumes:
             - pgdata:/var/lib/postgresql/data
         healthcheck:
