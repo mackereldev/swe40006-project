@@ -33,7 +33,8 @@ app.get("/entry", async (req, res) => {
                 res.json({ entries: [] });
             }
         }
-    } catch {
+    } catch (err) {
+        console.error(err);
         res.sendStatus(500);
     }
 });
@@ -46,7 +47,8 @@ app.post("/entry", async (req, res) => {
     } else {
         try {
             res.json({ entries: await createEntry(author, body) });
-        } catch {
+        } catch (err) {
+            console.error(err);
             res.sendStatus(500);
         }
     }
