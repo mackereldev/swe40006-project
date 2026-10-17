@@ -11,5 +11,6 @@
   "[markdown]": { "editor.defaultFormatter": "dprint.dprint" },
   "[yaml]": { "editor.defaultFormatter": "dprint.dprint" },
   "[dockerfile]": { "editor.defaultFormatter": "dprint.dprint" },
+  "[dockercompose]": { "editor.defaultFormatter": "dprint.dprint" },
   "[prisma]": { "editor.defaultFormatter": "Prisma.prisma" },
 }
