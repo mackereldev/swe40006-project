@@ -14,5 +14,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*"]
+  "include": ["./src/**/*.ts"],
+  "references": [
+    { "path": "./prisma.tsconfig.json" }
+  ]
 }
