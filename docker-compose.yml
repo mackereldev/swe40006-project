@@ -3,6 +3,8 @@ services:
         build:
             context: .
             dockerfile: ./frontend/Dockerfile
+            args:
+                ENV: ${ENV}
             tags:
                 - swe40006-project-frontend
         container_name: swe40006-project-frontend
@@ -10,11 +12,27 @@ services:
             VITE_API_URL: "localhost:${BACKEND_PORT}"
         ports:
             - "${FRONTEND_PORT}:4173"
+        develop:
+            watch:
+                - action: sync
+                  path: ./frontend
+                  target: /usr/src/app/frontend
+                  initial_sync: true
+                  ignore:
+                      - ./frontend/package.json
+                - action: rebuild
+                  path: package.json
+                  target: /usr/src/app/package.json
+                - action: rebuild
+                  path: ./frontend/package.json
+                  target: /usr/src/app/frontend/package.json
 
     backend:
         build:
             context: .
             dockerfile: ./backend/Dockerfile
+            args:
+                ENV: ${ENV}
             tags:
                 - swe40006-project-backend
         container_name: swe40006-project-backend
@@ -25,6 +43,20 @@ services:
         depends_on:
             db:
                 condition: service_healthy
+        develop:
+            watch:
+                - action: sync+restart
+                  path: ./backend
+                  target: /usr/src/app/backend
+                  initial_sync: true
+                  ignore:
+                      - ./backend/package.json
+                - action: rebuild
+                  path: package.json
+                  target: /usr/src/app/package.json
+                - action: rebuild
+                  path: ./backend/package.json
+                  target: /usr/src/app/backend/package.json
 
     db:
         image: postgres:17
