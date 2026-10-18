@@ -73,3 +73,102 @@ jobs:
                       ./backend/dist/backend.zip
                       ./frontend/dist/frontend.zip
                       LICENSE
+    deploy-frontend:
+        name: Deploy Frontend to S3 and CloudFront
+        needs:
+            - ci
+            - aws-access-smoke-test
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+            - name: Set up pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 12.11.2
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Build frontend
+              run: pnpm --dir frontend run build
+            - name: Validate deployment configuration
+              env:
+                  S3_BUCKET: ${{ vars.S3_BUCKET }}
+                  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+              run: |
+                  test -n "$S3_BUCKET" || { echo "S3_BUCKET repository variable is required" >&2; exit 1; }
+                  test -n "$CLOUDFRONT_DISTRIBUTION_ID" || { echo "CLOUDFRONT_DISTRIBUTION_ID repository variable is required" >&2; exit 1; }
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
+                  aws-region: ap-southeast-2
+            - name: Upload frontend to private S3
+              env:
+                  S3_BUCKET: ${{ vars.S3_BUCKET }}
+              run: aws s3 sync frontend/dist/ "s3://${S3_BUCKET}/" --delete
+            - name: Invalidate CloudFront cache
+              env:
+                  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+              run: aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
+
+    aws-access-smoke-test:
+        name: AWS deployment preflight
+        needs: ci
+        if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ops/'))) || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ops/')))
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - name: Validate deployment configuration
+              env:
+                  S3_BUCKET: ${{ vars.S3_BUCKET }}
+                  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+              run: |
+                  test -n "$S3_BUCKET" || { echo "S3_BUCKET repository variable is required" >&2; exit 1; }
+                  test -n "$CLOUDFRONT_DISTRIBUTION_ID" || { echo "CLOUDFRONT_DISTRIBUTION_ID repository variable is required" >&2; exit 1; }
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
+                  aws-region: ap-southeast-2
+            - name: Verify assumed AWS role
+              run: aws sts get-caller-identity
+            - name: Verify S3 bucket and CloudFront distribution access
+              env:
+                  S3_BUCKET: ${{ vars.S3_BUCKET }}
+                  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+              run: |
+                  aws s3api head-bucket --bucket "$S3_BUCKET"
+                  aws cloudfront get-distribution --id "$CLOUDFRONT_DISTRIBUTION_ID" >/dev/null
+            - name: Test S3 upload, read, and cleanup
+              env:
+                  S3_BUCKET: ${{ vars.S3_BUCKET }}
+              run: |
+                  set -euo pipefail
+                  aws s3api head-bucket --bucket "$S3_BUCKET"
+
+                  object_key="_ci-smoke/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA}.txt"
+                  source_file="$(mktemp)"
+                  downloaded_file="$(mktemp)"
+                  cleanup() {
+                    aws s3api delete-object --bucket "$S3_BUCKET" --key "$object_key" >/dev/null || \
+                      echo "Warning: failed to delete S3 smoke-test object s3://${S3_BUCKET}/${object_key}" >&2
+                    rm -f "$source_file" "$downloaded_file"
+                  }
+                  trap cleanup EXIT
+
+                  printf '%s\n' "GitHub Actions S3 access test ${GITHUB_RUN_ID}" > "$source_file"
+                  aws s3api put-object --bucket "$S3_BUCKET" --key "$object_key" --body "$source_file" >/dev/null
+                  aws s3api get-object --bucket "$S3_BUCKET" --key "$object_key" "$downloaded_file" >/dev/null
+                  cmp "$source_file" "$downloaded_file"
+                  echo "S3 upload and read succeeded for the temporary smoke-test object."
