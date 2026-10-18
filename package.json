@@ -5,8 +5,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "build": "pnpm -r build",
     "lint": "eslint .",
-    "preview": "vite preview",
     "format": "dprint check",
     "format:write": "dprint fmt"
   },
