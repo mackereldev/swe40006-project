@@ -61,10 +61,10 @@ jobs:
             - name: Build packages
               run: pnpm run build
             - name: Zip backend
-              run: unzip -qq -r backend.zip **
+              run: zip -qq -r backend.zip **
               working-directory: ./backend/dist
             - name: Zip frontend
-              run: unzip -qq -r frontend.zip **
+              run: zip -qq -r frontend.zip **
               working-directory: ./frontend/dist
             - name: Release
               uses: softprops/action-gh-release@v3
