@@ -1,0 +1,78 @@
+name: Main
+
+on:
+    push:
+        branches: "**"
+        tags: v[0-9]+.[0-9]+.[0-9]+
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    ci:
+        name: Formatting and lint
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+            - name: Set up pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 12.11.2
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Check formatting
+              run: pnpm run format
+            - name: Run lint
+              run: pnpm run lint
+            - name: Compile backend
+              run: pnpm exec tsc --noEmit
+              working-directory: ./backend
+            - name: Compile frontend
+              run: pnpm exec tsc --noEmit
+              working-directory: ./frontend
+    release:
+        name: Release
+        needs: ci
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+            - name: Install zip
+              uses: montudor/action-zip@v1
+            - name: Set up pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 12.11.2
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Build packages
+              run: pnpm run build
+            - name: Zip backend
+              run: unzip -qq -r backend.zip **
+              working-directory: ./backend/dist
+            - name: Zip frontend
+              run: unzip -qq -r frontend.zip **
+              working-directory: ./frontend/dist
+            - name: Release
+              uses: softprops/action-gh-release@v3
+              with:
+                  files: |
+                      ./backend/dist/backend.zip
+                      ./frontend/dist/frontend.zip
+                      LICENSE
