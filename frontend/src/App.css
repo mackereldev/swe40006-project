@@ -70,3 +70,8 @@ div.divider {
         }
     }
 }
+
+.entry-list-placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+}

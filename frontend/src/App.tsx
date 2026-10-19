@@ -39,7 +39,7 @@ function App() {
         }
     }
 
-    const [entries, setEntries] = useState<Entry[]>([]);
+    const [entries, setEntries] = useState<Entry[] | null>(null);
 
     useEffect(updateEntries, []);
 
@@ -64,23 +64,35 @@ function App() {
                 <div className="divider" />
                 <section>
                     <h2>Entries</h2>
-                    <div className="entry-list">
-                        {entries.map((entry, index) => (
-                            <Fragment key={entry.id}>
-                                <div className="entry">
-                                    <div className="entry-header">
-                                        <span>{entry.author}</span>
-                                        <span>&nbsp;-&nbsp;</span>
-                                        <span title={new Date(entry.createdAt).toLocaleString()}>
-                                            {new Date(entry.createdAt).toLocaleDateString()}
-                                        </span>
+                    {entries
+                        ? (
+                            entries.length > 0
+                                ? (
+                                    <div className="entry-list">
+                                        {entries.map((entry, index) => (
+                                            <Fragment key={entry.id}>
+                                                <div className="entry">
+                                                    <div className="entry-header">
+                                                        <span>{entry.author}</span>
+                                                        <span>&nbsp;-&nbsp;</span>
+                                                        <span title={new Date(entry.createdAt).toLocaleString()}>
+                                                            {new Date(entry.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <p className="entry-body">{entry.body}</p>
+                                                </div>
+                                                {index < entries.length - 1 && <div className="divider" />}
+                                            </Fragment>
+                                        ))}
                                     </div>
-                                    <p className="entry-body">{entry.body}</p>
-                                </div>
-                                {index < entries.length - 1 && <div className="divider" />}
-                            </Fragment>
-                        ))}
-                    </div>
+                                )
+                                : (
+                                    <span className="entry-list-placeholder">
+                                        there are no entries yet... be the first!
+                                    </span>
+                                )
+                        )
+                        : <span className="entry-list-placeholder">loading...</span>}
                 </section>
             </main>
         </>
