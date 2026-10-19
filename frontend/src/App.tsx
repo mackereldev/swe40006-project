@@ -39,9 +39,20 @@ function App() {
         }
     }
 
+    const [connectionState, setConnectionState] = useState<"initial" | "success" | "fail">("initial");
     const [entries, setEntries] = useState<Entry[] | null>(null);
 
-    useEffect(updateEntries, []);
+    useEffect(() => {
+        api.get().res()
+            .then(() => {
+                setConnectionState("success");
+                updateEntries();
+            })
+            .catch((error) => {
+                console.error(error);
+                setConnectionState("fail");
+            });
+    }, []);
 
     return (
         <>
@@ -64,35 +75,37 @@ function App() {
                 <div className="divider" />
                 <section>
                     <h2>Entries</h2>
-                    {entries
-                        ? (
-                            entries.length > 0
-                                ? (
-                                    <div className="entry-list">
-                                        {entries.map((entry, index) => (
-                                            <Fragment key={entry.id}>
-                                                <div className="entry">
-                                                    <div className="entry-header">
-                                                        <span>{entry.author}</span>
-                                                        <span>&nbsp;-&nbsp;</span>
-                                                        <span title={new Date(entry.createdAt).toLocaleString()}>
-                                                            {new Date(entry.createdAt).toLocaleDateString()}
-                                                        </span>
+                    {connectionState !== "fail"
+                        ? (entries
+                            ? (
+                                entries.length > 0
+                                    ? (
+                                        <div className="entry-list">
+                                            {entries.map((entry, index) => (
+                                                <Fragment key={entry.id}>
+                                                    <div className="entry">
+                                                        <div className="entry-header">
+                                                            <span>{entry.author}</span>
+                                                            <span>&nbsp;-&nbsp;</span>
+                                                            <span title={new Date(entry.createdAt).toLocaleString()}>
+                                                                {new Date(entry.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                        <p className="entry-body">{entry.body}</p>
                                                     </div>
-                                                    <p className="entry-body">{entry.body}</p>
-                                                </div>
-                                                {index < entries.length - 1 && <div className="divider" />}
-                                            </Fragment>
-                                        ))}
-                                    </div>
-                                )
-                                : (
-                                    <span className="entry-list-placeholder">
-                                        there are no entries yet... be the first!
-                                    </span>
-                                )
-                        )
-                        : <span className="entry-list-placeholder">loading...</span>}
+                                                    {index < entries.length - 1 && <div className="divider" />}
+                                                </Fragment>
+                                            ))}
+                                        </div>
+                                    )
+                                    : (
+                                        <span className="entry-list-placeholder">
+                                            there are no entries yet... be the first!
+                                        </span>
+                                    )
+                            )
+                            : <span className="entry-list-placeholder">loading...</span>)
+                        : <span className="entry-list-placeholder">connection failed :&#40;</span>}
                 </section>
             </main>
         </>

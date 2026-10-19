@@ -12,6 +12,10 @@ app
     .use(cors())
     .use(express.json());
 
+app.get("/", (_, res) => {
+    res.sendStatus(200);
+});
+
 app.get("/entry", async (req, res) => {
     try {
         if (Object.keys(req.query).length == 0) {
