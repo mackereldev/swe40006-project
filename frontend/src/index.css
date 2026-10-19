@@ -1,22 +1,27 @@
 :root {
-    --text: #6b6375;
-    --text-h: #1e1631;
+    --text: #272727;
     --bg: #fff;
-    --border: #e5e4e7;
+    --border: #dddddd;
+
+    --color-accent-50: oklch(96.9% 0.016 293.756);
+    --color-accent-100: oklch(94.3% 0.029 294.588);
+    --color-accent-200: oklch(89.4% 0.057 293.283);
+    --color-accent-300: oklch(81.1% 0.111 293.571);
+    --color-accent-400: oklch(70.2% 0.183 293.541);
+    --color-accent-500: oklch(60.6% 0.25 292.717);
+    --color-accent-600: oklch(54.1% 0.281 293.009);
+    --color-accent-700: oklch(49.1% 0.27 292.581);
+    --color-accent-800: oklch(43.2% 0.232 292.759);
+    --color-accent-900: oklch(38% 0.189 293.745);
+    --color-accent-950: oklch(28.3% 0.141 291.089);
 
     --sans: system-ui, "Segoe UI", Roboto, sans-serif;
     --heading: system-ui, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, Consolas, monospace;
 
-    font: 18px/145% var(--sans);
-    letter-spacing: 0.18px;
-    color-scheme: light dark;
+    color-scheme: light;
     color: var(--text);
     background: var(--bg);
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -34,18 +39,68 @@
 h1,
 h2 {
     font-family: var(--heading);
-    font-weight: 500;
-    color: var(--text-h);
 }
 
 h1 {
     font-size: 56px;
+    font-weight: 600;
     letter-spacing: -1.68px;
     margin: 32px 0;
 }
 h2 {
     font-size: 24px;
-    line-height: 118%;
+    font-weight: 500;
     letter-spacing: -0.24px;
     margin: 0 0 8px;
+}
+
+input {
+    padding: 0.25rem 0.5rem;
+}
+
+textarea {
+    padding: 0.5rem;
+}
+
+input, textarea {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+
+    &:focus-visible {
+        outline: 0;
+        border: 1px solid var(--border);
+        border-color: var(--color-accent-500);
+    }
+}
+
+button {
+    padding: 0.25rem 1rem;
+    border: 0;
+    border-radius: 4px;
+    outline: 1px solid transparent;
+
+    color: var(--color-accent-600);
+    background-color: var(--color-accent-100);
+    font-style: italic;
+
+    cursor: pointer;
+
+    transition-duration: 50ms;
+    transition-timing-function: ease;
+    transition-property: color;
+    transition-property: background-color;
+
+    &:hover {
+        color: var(--color-accent-700);
+        background-color: var(--color-accent-200);
+    }
+
+    &:active {
+        color: var(--color-accent-800);
+        background-color: var(--color-accent-300);
+    }
+
+    &:focus-visible {
+        outline-color: var(--color-accent-400);
+    }
 }
