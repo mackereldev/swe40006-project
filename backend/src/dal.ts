@@ -8,7 +8,7 @@ export async function createEntry(author: string, body: string) {
 }
 
 export async function getEntries() {
-    return await db.orm.public.Entry.all();
+    return await db.orm.public.Entry.orderBy((e) => e.createdAt.desc()).all();
 }
 
 export async function getEntryById(id: number) {
