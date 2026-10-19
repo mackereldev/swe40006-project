@@ -12,7 +12,8 @@
   "dependencies": {
     "modern-normalize": "^3.0.1",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "wretch": "^3.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
