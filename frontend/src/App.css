@@ -1,0 +1,45 @@
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+
+    & > * {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        padding: 0.75rem;
+        margin-inline: 1rem;
+    }
+}
+
+div.divider {
+    block-size: 1px;
+    padding: 0;
+    background-color: var(--border);
+}
+
+form.entry-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+
+    & > label {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+
+        margin-bottom: 2px;
+        color: #8a8a8a;
+        font-style: italic;
+
+        &:focus-within {
+            color: var(--color-accent-500);
+        }
+
+        & input, textarea {
+            width: 24rem;
+        }
+    }
+}
