@@ -165,8 +165,6 @@ jobs:
             contents: read
             id-token: write
         steps:
-            - name: Check out repository
-              uses: actions/checkout@v4
             - name: Validate deployment configuration
               run: |
                   test -n "$AUTO_SCALING_GROUP_NAME" || { echo "AUTO_SCALING_GROUP_NAME repository variable is required" >&2; exit 1; }
