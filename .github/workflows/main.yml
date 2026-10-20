@@ -170,6 +170,8 @@ jobs:
         permissions:
             contents: read
             id-token: write
+        env:
+            AUTO_SCALING_GROUP_NAME: ${{ vars.AUTO_SCALING_GROUP_NAME }}
         steps:
             - name: Validate deployment configuration
               run: |
