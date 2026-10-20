@@ -9,7 +9,7 @@ on:
 
 jobs:
     ci:
-        name: Formatting and lint
+        name: Formatting and Static Analysis
         runs-on: ubuntu-latest
         steps:
             - name: Check out repository
@@ -37,9 +37,9 @@ jobs:
               working-directory: ./frontend
 
     aws-access-smoke-test:
-        name: AWS deployment preflight
+        name: AWS Deployment Preflight
         needs: ci
-        if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ops/'))) || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ops/')))
+        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ops/')) && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -91,10 +91,8 @@ jobs:
 
     deploy-frontend:
         name: Deploy Frontend to S3 and CloudFront
-        needs:
-            - ci
-            - aws-access-smoke-test
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        needs: aws-access-smoke-test
+        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
         runs-on: ubuntu-latest
         permissions:
             contents: read
