@@ -124,3 +124,59 @@ jobs:
               run: aws s3 sync frontend/dist/ "s3://${S3_BUCKET}/" --delete
             - name: Invalidate CloudFront cache
               run: aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
+
+    build-backend:
+        name: Build Backend and Save to Artifact
+        needs: aws-access-smoke-test
+        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+            - name: Set up pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 12.11.2
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Build backend
+              run: pnpm --dir backend run build
+            - name: Upload production build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: backend
+                  path: ./backend/dist
+            - name: Update deployment-run-id parameter
+              run: aws ssm put-parameter --name "deployment-run-id" --type "String" --value "$GITHUB_RUN_ID" --overwrite
+
+    deploy-backend:
+        name: Deploy Backend Express Server
+        needs: build-backend
+        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+            - name: Validate deployment configuration
+              run: |
+                  test -n "$AUTO_SCALING_GROUP_NAME" || { echo "AUTO_SCALING_GROUP_NAME repository variable is required" >&2; exit 1; }
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
+                  aws-region: ap-southeast-2
+            - name: Refresh Auto Scaling group
+              run: |
+                  aws autoscaling start-instance-refresh \
+                  --auto-scaling-group-name "$AUTO_SCALING_GROUP_NAME" \
+                  --preferences '{"MinHealthyPercentage": 50}'
