@@ -5,8 +5,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch ./src/index.ts",
-    "build": "tsc"
+    "dev": "tsx watch src/index.ts",
+    "build": "esbuild src/index.ts --platform=node --bundle --minify --outfile=dist/index.cjs",
+    "start": "node ./dist/index.cjs"
   },
   "dependencies": {
     "@prisma/orm-postgres": "8.0.0-rc.18",
@@ -19,6 +20,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
     "prisma": "8.0.0-rc.22",
     "tsx": "^4.23.15"
   }
