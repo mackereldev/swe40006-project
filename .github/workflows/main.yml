@@ -153,6 +153,11 @@ jobs:
               with:
                   name: backend
                   path: ./backend/dist
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
+                  aws-region: ap-southeast-2
             - name: Update deployment-run-id parameter
               run: aws ssm put-parameter --name "deployment-run-id" --type "String" --value "$GITHUB_RUN_ID" --overwrite
 
