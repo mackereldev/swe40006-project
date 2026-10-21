@@ -185,4 +185,4 @@ jobs:
               run: |
                   aws autoscaling start-instance-refresh \
                   --auto-scaling-group-name "$AUTO_SCALING_GROUP_NAME" \
-                  --preferences '{"MinHealthyPercentage": 50}'
+                  --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 180, "SkipMatching": false}'
