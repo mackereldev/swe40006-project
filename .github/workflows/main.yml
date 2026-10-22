@@ -149,6 +149,23 @@ jobs:
                     --filters "Key=InstanceIds,Values=$SSM_TARGET_INSTANCE_ID" \
                     --query 'InstanceInformationList[].{Id:InstanceId,PingStatus:PingStatus,Platform:PlatformName}' \
                     --output table
+            - name: Diagnose SSM target status
+              shell: bash
+              env:
+                  AWS_REGION: ap-southeast-2
+                  SSM_TARGET_INSTANCE_ID: i-0908e98d81afaaee4
+              run: |
+                  set -euo pipefail
+
+                  echo "Active AWS identity:"
+                  aws sts get-caller-identity
+
+                  echo "SSM managed-node status:"
+                  aws ssm describe-instance-information \
+                    --region "$AWS_REGION" \
+                    --filters "Key=InstanceIds,Values=$SSM_TARGET_INSTANCE_ID" \
+                    --query 'InstanceInformationList[*].[InstanceId,PingStatus,AgentVersion]' \
+                    --output table
             - name: Test actual SSM session access
               run: |
                   set -euo pipefail
