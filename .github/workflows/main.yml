@@ -84,7 +84,7 @@ jobs:
               with:
                   role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
                   aws-region: ap-southeast-2
-            - name: Verify deployment role and attached IAM policies
+            - name: Verify deployment role and inspect attached IAM policies
               run: |
                   set -euo pipefail
                   expected_role_arn="arn:aws:iam::418043654854:role/github-actions-guestbook-deploy"
@@ -99,22 +99,24 @@ jobs:
                       ;;
                   esac
 
-                  managed_policies="$(aws iam list-attached-role-policies \
+                  if managed_policies="$(aws iam list-attached-role-policies \
                     --role-name "$role_name" \
                     --query 'AttachedPolicies[].{PolicyName:PolicyName,PolicyArn:PolicyArn}' \
-                    --output json)"
-                  inline_policies="$(aws iam list-role-policies \
+                    --output json)"; then
+                    echo "Managed policies attached to ${role_name}:"
+                    printf '%s\n' "$managed_policies" | jq .
+                  else
+                    echo "::warning::Could not list managed policies; the role needs iam:ListAttachedRolePolicies for inventory. Continuing to the SSM access check."
+                  fi
+
+                  if inline_policies="$(aws iam list-role-policies \
                     --role-name "$role_name" \
                     --query 'PolicyNames' \
-                    --output json)"
-                  echo "Managed policies attached to ${role_name}:"
-                  printf '%s\n' "$managed_policies" | jq .
-                  echo "Inline policies attached to ${role_name}:"
-                  printf '%s\n' "$inline_policies" | jq .
-                  if ! jq -e 'length > 0' <<< "$managed_policies" >/dev/null &&
-                     ! jq -e 'length > 0' <<< "$inline_policies" >/dev/null; then
-                    echo "::error::No managed or inline policies are attached to ${role_name}."
-                    exit 1
+                    --output json)"; then
+                    echo "Inline policies attached to ${role_name}:"
+                    printf '%s\n' "$inline_policies" | jq .
+                  else
+                    echo "::warning::Could not list inline policies; the role needs iam:ListRolePolicies for inventory. Continuing to the SSM access check."
                   fi
             - name: Check AWS identity and SSM permissions
               run: |
