@@ -84,6 +84,32 @@ jobs:
               with:
                   role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
                   aws-region: ap-southeast-2
+            - name: Check AWS identity and SSM permissions
+              run: |
+                  set -euo pipefail
+                  instance_arn="arn:aws:ec2:ap-southeast-2:418043654854:instance/i-0908e98d81afaee4"
+                  document_arn="arn:aws:ssm:ap-southeast-2:418043654854:document/SSM-SessionManagerRunShell"
+                  evaluation="$(aws iam simulate-principal-policy \
+                    --policy-source-arn arn:aws:iam::418043654854:role/github-actions-guestbook-deploy \
+                    --action-names ssm:StartSession \
+                    --resource-arns \
+                      "$instance_arn" \
+                      "$document_arn" \
+                    --query 'EvaluationResults[].{Resource: EvalResourceName, Decision: EvalDecision}' \
+                    --output json)"
+
+                  printf '%s\n' "$evaluation" | jq .
+                  if ! jq -e \
+                    --arg instance "$instance_arn" \
+                    --arg document "$document_arn" \
+                    'length == 2
+                      and any(.[]; .Resource == $instance and .Decision == "allowed")
+                      and any(.[]; .Resource == $document and .Decision == "allowed")' \
+                    <<< "$evaluation" >/dev/null; then
+                    echo "::error::The assumed role is not allowed to call ssm:StartSession on both the target instance and session document."
+                    exit 1
+                  fi
+                  echo "ssm:StartSession is allowed on the target instance and session document."
             - name: Verify assumed AWS role
               run: aws sts get-caller-identity
             - name: Verify S3 bucket and CloudFront distribution access
