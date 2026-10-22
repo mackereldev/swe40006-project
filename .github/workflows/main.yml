@@ -35,6 +35,13 @@ jobs:
             - name: Compile frontend
               run: pnpm exec tsc --noEmit
               working-directory: ./frontend
+            - name: Install latest Docker Compose
+              run: |
+                  mkdir -p ~/.docker/cli-plugins
+                  curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+                      -o ~/.docker/cli-plugins/docker-compose
+                  chmod +x ~/.docker/cli-plugins/docker-compose
+                  docker compose version
             - name: Create Docker Compose environment file
               run: cp .env.example .env
             - name: Start database and backend containers
@@ -54,7 +61,7 @@ jobs:
                   path: ./coverage
             - name: Stop containers
               if: always()
-              run: docker compose down --volumes
+              run: docker compose down --volumes || true
 
     aws-access-smoke-test:
         name: AWS Deployment Preflight
