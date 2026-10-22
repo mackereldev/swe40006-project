@@ -9,7 +9,7 @@ on:
 
 jobs:
     ci:
-        name: Formatting and Static Analysis
+        name: Formatting, Static Analysis and Tests
         runs-on: ubuntu-latest
         steps:
             - name: Check out repository
@@ -35,6 +35,26 @@ jobs:
             - name: Compile frontend
               run: pnpm exec tsc --noEmit
               working-directory: ./frontend
+            - name: Create Docker Compose environment file
+              run: cp .env.example .env
+            - name: Start database and backend containers
+              run: docker compose up --detach --build --wait db backend
+            - name: Initialise database schema
+              run: docker compose exec -T backend pnpm exec prisma db init -y
+            - name: Run unit, integration and regression tests with coverage
+              run: docker compose exec -T backend pnpm run test:coverage
+            - name: Copy coverage report out of the backend container
+              if: always()
+              run: docker compose cp backend:/usr/src/app/backend/coverage ./coverage || echo "No coverage report was generated"
+            - name: Upload coverage report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-report
+                  path: ./coverage
+            - name: Stop containers
+              if: always()
+              run: docker compose down --volumes
 
     aws-access-smoke-test:
         name: AWS Deployment Preflight
