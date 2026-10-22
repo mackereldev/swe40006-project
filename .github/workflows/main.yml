@@ -158,7 +158,10 @@ jobs:
             - name: Test actual SSM session access
               run: |
                   set -euo pipefail
-                  target_id="i-0908e98d81afaee4"
+                  SSM_TARGET_INSTANCE_ID="${SSM_TARGET_INSTANCE_ID:-i-0908e98d81afaee4}"
+                  AWS_REGION="${AWS_REGION:-ap-southeast-2}"
+                  echo "SSM target: '${SSM_TARGET_INSTANCE_ID:-<unset>}'"
+                  echo "AWS region: '${AWS_REGION:-<unset>}'"
                   document_name="SSM-SessionManagerRunShell"
                   session_log="$(mktemp)"
                   trap 'rm -f "$session_log"' EXIT
@@ -166,7 +169,7 @@ jobs:
                   set +e
                   printf 'exit\n' | timeout --signal=INT --kill-after=5s 30s \
                     script --quiet --return --command \
-                      "aws ssm start-session --target ${target_id} --document-name ${document_name} --region ap-southeast-2" \
+                      "aws ssm start-session --target ${SSM_TARGET_INSTANCE_ID} --document-name ${document_name} --region ${AWS_REGION}" \
                       /dev/null >"$session_log" 2>&1
                   session_status=$?
                   set -e
