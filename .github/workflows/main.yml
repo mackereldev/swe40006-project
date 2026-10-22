@@ -39,7 +39,7 @@ jobs:
     aws-access-smoke-test:
         name: AWS Deployment Preflight
         needs: ci
-        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ops/')) && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -87,7 +87,7 @@ jobs:
     deploy-frontend:
         name: Build & Deploy Frontend
         needs: aws-access-smoke-test
-        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -129,7 +129,7 @@ jobs:
     build-backend:
         name: Build Backend
         needs: aws-access-smoke-test
-        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -166,7 +166,7 @@ jobs:
     deploy-backend-api:
         name: Deploy Backend API
         needs: build-backend
-        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -191,7 +191,7 @@ jobs:
     deploy-backend-db:
         name: Deploy Backend Database
         needs: build-backend
-        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-latest
         permissions:
             contents: read
