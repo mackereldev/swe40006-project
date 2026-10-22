@@ -116,6 +116,7 @@ jobs:
               run: |
                   test -n "$S3_BUCKET" || { echo "S3_BUCKET repository variable is required" >&2; exit 1; }
                   test -n "$CLOUDFRONT_DISTRIBUTION_ID" || { echo "CLOUDFRONT_DISTRIBUTION_ID repository variable is required" >&2; exit 1; }
+                  test -n "$PROD_API_URL" || { echo "PROD_API_URL repository variable is required" >&2; exit 1; }
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
@@ -134,9 +135,14 @@ jobs:
         permissions:
             contents: read
             id-token: write
+        env:
+            PROD_FRONTEND_ORIGIN: ${{ vars.PROD_FRONTEND_ORIGIN }}
         steps:
             - name: Check out repository
               uses: actions/checkout@v4
+            - name: Validate build configuration
+              run: |
+                  test -n "$PROD_FRONTEND_ORIGIN" || { echo "PROD_FRONTEND_ORIGIN repository variable is required" >&2; exit 1; }
             - name: Set up pnpm
               uses: pnpm/action-setup@v4
               with:
@@ -150,6 +156,8 @@ jobs:
               run: pnpm install --frozen-lockfile
             - name: Build backend
               run: pnpm --dir backend run build
+              env:
+                  NODE_ENV: production
             - name: Upload production build artifact
               uses: actions/upload-artifact@v4
               with:

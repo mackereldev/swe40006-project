@@ -9,7 +9,10 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app
-    .use(cors())
+    .use(cors({
+        origin: process.env.NODE_ENV === "production" ? process.env.PROD_FRONTEND_ORIGIN : "http://localhost",
+        allowedHeaders: ["Content-Type", "Authorization"],
+    }))
     .use(express.json());
 
 app.get("/", (_, res) => {
