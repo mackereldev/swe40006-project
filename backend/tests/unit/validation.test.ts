@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { AUTHOR_MAX_LENGTH, BODY_MAX_LENGTH, DEFAULT_AUTHOR, parseEntryId, validateEntry } from "../../src/validation.js";
+import {
+    AUTHOR_MAX_LENGTH,
+    BODY_MAX_LENGTH,
+    DEFAULT_AUTHOR,
+    parseEntryId,
+    validateEntry,
+} from "../../src/validation.js";
 
 describe("validateEntry", () => {
     it("accepts a valid entry and trims whitespace", () => {
