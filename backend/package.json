@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "esbuild src/index.ts --platform=node --bundle --minify --outfile=dist/index.cjs",
+    "build": "node ./build.mjs",
     "start": "node ./dist/index.cjs"
   },
   "dependencies": {
