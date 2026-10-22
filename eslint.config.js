@@ -7,6 +7,7 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig([
     globalIgnores([
+        "**/coverage",
         "dist",
         "./backend/migrations/**",
         "./backend/src/prisma/**/*.d.ts",
