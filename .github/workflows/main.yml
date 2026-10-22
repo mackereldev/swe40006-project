@@ -62,27 +62,29 @@ jobs:
                   set -euo pipefail
                   instance_arn="arn:aws:ec2:ap-southeast-2:418043654854:instance/i-0908e98d81afaee4"
                   document_arn="arn:aws:ssm:ap-southeast-2:418043654854:document/SSM-SessionManagerRunShell"
-                  evaluation="$(aws iam simulate-principal-policy \
-                    --policy-source-arn arn:aws:iam::418043654854:role/github-actions-guestbook-deploy \
-                    --action-names ssm:StartSession \
-                    --resource-arns \
-                      "$instance_arn" \
-                      "$document_arn" \
-                    --query 'EvaluationResults[].{Resource: EvalResourceName, Decision: EvalDecision}' \
-                    --output json)"
+                  check_ssm_start_session_access() {
+                    local resource_arn="$1"
+                    local resource_label="$2"
+                    local evaluation
 
-                  printf '%s\n' "$evaluation" | jq .
-                  if ! jq -e \
-                    --arg instance "$instance_arn" \
-                    --arg document "$document_arn" \
-                    'length == 2
-                      and any(.[]; .Resource == $instance and .Decision == "allowed")
-                      and any(.[]; .Resource == $document and .Decision == "allowed")' \
-                    <<< "$evaluation" >/dev/null; then
-                    echo "::error::The assumed role is not allowed to call ssm:StartSession on both the target instance and session document."
-                    exit 1
-                  fi
-                  echo "ssm:StartSession is allowed on the target instance and session document."
+                    evaluation="$(aws iam simulate-principal-policy \
+                      --policy-source-arn arn:aws:iam::418043654854:role/github-actions-guestbook-deploy \
+                      --action-names ssm:StartSession \
+                      --resource-arns "$resource_arn" \
+                      --query 'EvaluationResults[].EvalDecision' \
+                      --output json)"
+
+                    echo "ssm:StartSession simulation for ${resource_label}:"
+                    printf '%s\n' "$evaluation" | jq .
+                    if ! jq -e 'length == 1 and .[0] == "allowed"' <<< "$evaluation" >/dev/null; then
+                      echo "::error::ssm:StartSession is not allowed for ${resource_label} (${resource_arn})."
+                      return 1
+                    fi
+                  }
+
+                  check_ssm_start_session_access "$instance_arn" "target instance"
+                  check_ssm_start_session_access "$document_arn" "session document"
+                  echo "ssm:StartSession is allowed on both the target instance and session document."
             - name: Verify assumed AWS role
               run: aws sts get-caller-identity
             - name: Verify S3 bucket and CloudFront distribution access
