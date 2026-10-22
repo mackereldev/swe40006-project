@@ -224,12 +224,13 @@ jobs:
                   aws-region: ap-southeast-2
             - name: Determine connection details
               run: |
-                  echo "DB_HOST=$(aws rds describe-db-instances --db-instance-identifier "$RDS_INSTANCE_ID" --query "DBInstances[0].Endpoint.Address" --output text)" >> "$GITHUB_ENV"
+                  DB_HOST=$(aws rds describe-db-instances --db-instance-identifier "$RDS_INSTANCE_ID" --query "DBInstances[0].Endpoint.Address" --output text)
                   SECRET_ARN=$(aws rds describe-db-instances --db-instance-identifier "$RDS_INSTANCE_ID" --query "DBInstances[0].MasterUserSecret.SecretArn" --output text)
 
                   PGPASSWORD=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text | jq -r .password)
                   PGPASSWORD_URL=$(node -e "console.log(new URLSearchParams({pass: \"$PGPASSWORD\"}).toString().substring(5))")
 
+                  echo "DB_HOST=$DB_HOST" >> "$GITHUB_ENV"
                   echo "DATABASE_URL=postgres://dbadmin:$PGPASSWORD_URL@$DB_HOST:15432/appdb?sslmode=verify-full&sslrootcert=global-bundle.pem" >> "$GITHUB_ENV"
             - name: Download global certificate bundle
               run: curl -sSfLo ./backend/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
