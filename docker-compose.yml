@@ -59,7 +59,7 @@ services:
                   target: /usr/src/app/backend/package.json
 
     db:
-        image: postgres:17
+        image: postgres:18
         container_name: swe40006-project-db
         restart: always
         environment:
