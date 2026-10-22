@@ -116,7 +116,7 @@ jobs:
               run: |
                   test -n "$S3_BUCKET" || { echo "S3_BUCKET repository variable is required" >&2; exit 1; }
                   test -n "$CLOUDFRONT_DISTRIBUTION_ID" || { echo "CLOUDFRONT_DISTRIBUTION_ID repository variable is required" >&2; exit 1; }
-                  test -n "$PROD_API_URL" || { echo "PROD_API_URL repository variable is required" >&2; exit 1; }
+                  test -n "$VITE_API_URL" || { echo "PROD_API_URL repository variable is required" >&2; exit 1; }
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
