@@ -57,6 +57,38 @@ jobs:
               with:
                   role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
                   aws-region: ap-southeast-2
+            - name: Verify deployment role and attached IAM policies
+              run: |
+                  set -euo pipefail
+                  expected_role_arn="arn:aws:iam::418043654854:role/github-actions-guestbook-deploy"
+                  role_name="github-actions-guestbook-deploy"
+                  caller_arn="$(aws sts get-caller-identity --query Arn --output text)"
+                  echo "Assumed identity: ${caller_arn}"
+                  case "$caller_arn" in
+                    arn:aws:sts::418043654854:assumed-role/${role_name}/*) ;;
+                    *)
+                      echo "::error::Expected to assume ${expected_role_arn}, but got ${caller_arn}."
+                      exit 1
+                      ;;
+                  esac
+
+                  managed_policies="$(aws iam list-attached-role-policies \
+                    --role-name "$role_name" \
+                    --query 'AttachedPolicies[].{PolicyName:PolicyName,PolicyArn:PolicyArn}' \
+                    --output json)"
+                  inline_policies="$(aws iam list-role-policies \
+                    --role-name "$role_name" \
+                    --query 'PolicyNames' \
+                    --output json)"
+                  echo "Managed policies attached to ${role_name}:"
+                  printf '%s\n' "$managed_policies" | jq .
+                  echo "Inline policies attached to ${role_name}:"
+                  printf '%s\n' "$inline_policies" | jq .
+                  if ! jq -e 'length > 0' <<< "$managed_policies" >/dev/null &&
+                     ! jq -e 'length > 0' <<< "$inline_policies" >/dev/null; then
+                    echo "::error::No managed or inline policies are attached to ${role_name}."
+                    exit 1
+                  fi
             - name: Check AWS identity and SSM permissions
               run: |
                   set -euo pipefail
@@ -85,8 +117,41 @@ jobs:
                   check_ssm_start_session_access "$instance_arn" "target instance"
                   check_ssm_start_session_access "$document_arn" "session document"
                   echo "ssm:StartSession is allowed on both the target instance and session document."
-            - name: Verify assumed AWS role
-              run: aws sts get-caller-identity
+            - name: Install Session Manager plugin
+              run: |
+                  set -euo pipefail
+                  package="${RUNNER_TEMP}/session-manager-plugin.deb"
+                  curl -fsSL \
+                    https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb \
+                    -o "$package"
+                  sudo dpkg -i "$package"
+                  session-manager-plugin --version
+            - name: Test actual SSM session access
+              run: |
+                  set -euo pipefail
+                  target_id="i-0908e98d81afaee4"
+                  document_name="SSM-SessionManagerRunShell"
+                  session_log="$(mktemp)"
+                  trap 'rm -f "$session_log"' EXIT
+
+                  set +e
+                  printf 'exit\n' | timeout --signal=INT --kill-after=5s 30s \
+                    script --quiet --return --command \
+                      "aws ssm start-session --target ${target_id} --document-name ${document_name} --region ap-southeast-2" \
+                      /dev/null >"$session_log" 2>&1
+                  session_status=$?
+                  set -e
+
+                  cat "$session_log"
+                  if ! grep -q 'Starting session with SessionId:' "$session_log"; then
+                    echo "::error::SSM did not return a session ID; the actual StartSession check failed."
+                    exit 1
+                  fi
+                  if [ "$session_status" -ne 0 ]; then
+                    echo "::error::The SSM session did not close cleanly (exit ${session_status})."
+                    exit 1
+                  fi
+                  echo "A real SSM session was opened and closed successfully."
             - name: Verify S3 bucket and CloudFront distribution access
               run: |
                   aws s3api head-bucket --bucket "$S3_BUCKET"
