@@ -85,7 +85,7 @@ jobs:
                   echo "S3 upload and read succeeded for the temporary smoke-test object."
 
     deploy-frontend:
-        name: Deploy Frontend
+        name: Build & Deploy Frontend
         needs: aws-access-smoke-test
         if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
         runs-on: ubuntu-latest
@@ -163,8 +163,8 @@ jobs:
             - name: Update deployment-run-id parameter
               run: aws ssm put-parameter --name "deployment-run-id" --type "String" --value "$GITHUB_RUN_ID" --overwrite
 
-    deploy-backend:
-        name: Deploy Backend
+    deploy-backend-api:
+        name: Deploy Backend API
         needs: build-backend
         if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
         runs-on: ubuntu-latest
@@ -187,3 +187,61 @@ jobs:
                   aws autoscaling start-instance-refresh \
                   --auto-scaling-group-name "$AUTO_SCALING_GROUP_NAME" \
                   --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 180, "SkipMatching": false}'
+
+    deploy-backend-db:
+        name: Deploy Backend Database
+        needs: build-backend
+        if: github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch"]'), github.event_name)
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        env:
+            RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
+            MIGRATION_EC2_INSTANCE_ID: ${{ vars.MIGRATION_EC2_INSTANCE_ID }}
+        steps:
+            - name: Validate deployment configuration
+              run: |
+                  test -n "$RDS_INSTANCE_ID" || { echo "RDS_INSTANCE_ID repository variable is required" >&2; exit 1; }
+                  test -n "$MIGRATION_EC2_INSTANCE_ID" || { echo "MIGRATION_EC2_INSTANCE_ID repository variable is required" >&2; exit 1; }
+            - name: Check out repository
+              uses: actions/checkout@v4
+            - name: Set up pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 12.11.2
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::418043654854:role/github-actions-guestbook-deploy
+                  aws-region: ap-southeast-2
+            - name: Determine connection details
+              run: |
+                  echo "DB_HOST=$(aws rds describe-db-instances --db-instance-identifier "$RDS_INSTANCE_ID" --query "DBInstances[0].Endpoint.Address" --output text)" >> "$GITHUB_ENV"
+                  SECRET_ARN=$(aws rds describe-db-instances --db-instance-identifier "$RDS_INSTANCE_ID" --query "DBInstances[0].MasterUserSecret.SecretArn" --output text)
+
+                  PGPASSWORD=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text | jq -r .password)
+                  PGPASSWORD_URL=$(node -e "console.log(new URLSearchParams({pass: \"$PGPASSWORD\"}).toString().substring(5))")
+
+                  echo "DATABASE_URL=postgres://dbadmin:$PGPASSWORD_URL@$DB_HOST:15432/appdb?sslmode=verify-full&sslrootcert=global-bundle.pem" >> "$GITHUB_ENV"
+            - name: Download global certificate bundle
+              run: curl -sSfLo ./backend/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+            - name: Map 127.0.0.1 to $DB_HOST
+              run: echo "127.0.0.1 $DB_HOST" | sudo tee -a /etc/hosts
+            - name: Perform DB migration
+              run: |
+                  aws ssm start-session \
+                    --target "$MIGRATION_EC2_INSTANCE_ID" \
+                    --document-name AWS-StartPortForwardingSessionToRemoteHost \
+                    --parameters "{\"host\":[\"$DB_HOST\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"15432\"]}" &
+                  SSM_PID=$!
+                  sleep 3
+                  pnpm --dir backend prisma db migrate
+                  kill $SSM_PID
