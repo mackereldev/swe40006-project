@@ -159,7 +159,7 @@ jobs:
               shell: bash
               env:
                   AWS_REGION: ap-southeast-2
-                  SSM_TARGET_INSTANCE_ID: i-0908e98d81afaee4
+                  SSM_TARGET_INSTANCE_ID: i-0908e98d81afaaee4
               run: |
                   set -euo pipefail
 
