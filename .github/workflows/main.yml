@@ -193,34 +193,41 @@ jobs:
                     --filters "Key=InstanceIds,Values=$SSM_TARGET_INSTANCE_ID" \
                     --query 'InstanceInformationList[*].[InstanceId,PingStatus,AgentVersion]' \
                     --output table
+
             - name: Test actual SSM session access
+              shell: bash
+              env:
+                  SSM_TARGET_INSTANCE_ID: i-0908e98d81afaaee4
+                  AWS_REGION: ap-southeast-2
               run: |
                   set -euo pipefail
-                  SSM_TARGET_INSTANCE_ID="${SSM_TARGET_INSTANCE_ID:-i-0908e98d81afaaee4}"
-                  AWS_REGION="${AWS_REGION:-ap-southeast-2}"
-                  echo "SSM target: '${SSM_TARGET_INSTANCE_ID:-<unset>}'"
-                  echo "AWS region: '${AWS_REGION:-<unset>}'"
-                  document_name="SSM-SessionManagerRunShell"
+
+                  echo "SSM target: '$SSM_TARGET_INSTANCE_ID'"
+                  echo "AWS region: '$AWS_REGION'"
+
                   session_log="$(mktemp)"
                   trap 'rm -f "$session_log"' EXIT
 
                   set +e
                   printf 'exit\n' | timeout --signal=INT --kill-after=5s 30s \
                     script --quiet --return --command \
-                      "aws ssm start-session --target ${SSM_TARGET_INSTANCE_ID} --document-name ${document_name} --region ${AWS_REGION}" \
+                      "aws ssm start-session --target ${SSM_TARGET_INSTANCE_ID} --region ${AWS_REGION}" \
                       /dev/null >"$session_log" 2>&1
                   session_status=$?
                   set -e
 
                   cat "$session_log"
+
                   if ! grep -q 'Starting session with SessionId:' "$session_log"; then
                     echo "::error::SSM did not return a session ID; the actual StartSession check failed."
                     exit 1
                   fi
+
                   if [ "$session_status" -ne 0 ]; then
                     echo "::error::The SSM session did not close cleanly (exit ${session_status})."
                     exit 1
                   fi
+
                   echo "A real SSM session was opened and closed successfully."
             - name: Verify S3 bucket and CloudFront distribution access
               run: |
