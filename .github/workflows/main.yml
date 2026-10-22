@@ -155,6 +155,27 @@ jobs:
                     -o "$package"
                   sudo dpkg -i "$package"
                   session-manager-plugin --version
+            - name: Verify EC2 and SSM target
+              shell: bash
+              env:
+                  AWS_REGION: ap-southeast-2
+                  SSM_TARGET_INSTANCE_ID: i-0908e98d81afaee4
+              run: |
+                  set -euo pipefail
+
+                  echo "Checking EC2 instance..."
+                  aws ec2 describe-instances \
+                    --region "$AWS_REGION" \
+                    --instance-ids "$SSM_TARGET_INSTANCE_ID" \
+                    --query 'Reservations[0].Instances[0].{Id:InstanceId,State:State.Name}' \
+                    --output table
+
+                  echo "Checking SSM managed-node registration..."
+                  aws ssm describe-instance-information \
+                    --region "$AWS_REGION" \
+                    --filters "Key=InstanceIds,Values=$SSM_TARGET_INSTANCE_ID" \
+                    --query 'InstanceInformationList[].{Id:InstanceId,PingStatus:PingStatus,Platform:PlatformName}' \
+                    --output table
             - name: Test actual SSM session access
               run: |
                   set -euo pipefail
