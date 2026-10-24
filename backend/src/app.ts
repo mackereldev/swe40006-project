@@ -7,7 +7,9 @@ export const app = express();
 
 app
     .use(cors({
-        origin: process.env.NODE_ENV === "production" ? process.env.PROD_FRONTEND_ORIGIN : "http://localhost",
+        origin: /* v8 ignore next */ process.env.NODE_ENV === "production"
+            ? process.env.PROD_FRONTEND_ORIGIN
+            : "http://localhost",
         allowedHeaders: ["Content-Type", "Authorization"],
     }))
     .use(express.json());
